@@ -840,7 +840,7 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
 
     // 统一尝试用高德 API 获取区县级信息（国内 IP 且 Key 已配置）
     if ([cityCode length] > 0) {
-        DYYYFetchAMapDistrictInfo(cityCode, ^(NSString *amapDistrict) {
+        DYYYFetchAMapDistrictInfo(cityCode, cityName, ^(NSString *amapDistrict) {
           dispatch_async(dispatch_get_main_queue(), ^{
             NSString *currentRequestCode = objc_getAssociatedObject(label, kCurrentIPRequestCityCodeKey);
             if (![currentRequestCode isEqualToString:cityCode]) {
