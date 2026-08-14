@@ -721,6 +721,7 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
     NSString *provinceName = [CityManager.sharedInstance getProvinceNameWithCode:cityCode];
 
     if (!cityName || cityName.length == 0) {
+        // 本地码表没找到，走 GeoNames 逻辑（国外 IP）
         NSString *cacheKey = cityCode;
         static NSCache *geoNamesCache = nil;
         static dispatch_once_t onceToken;
@@ -818,9 +819,8 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
                                     });
                                   }];
         }
-    }
-
-    else if (![originalText containsString:cityName]) {
+    } else {
+        // 本地码表找到了国内城市
         BOOL isDirectCity = [provinceName isEqualToString:cityName] || ([cityCode hasPrefix:@"11"] || [cityCode hasPrefix:@"12"] || [cityCode hasPrefix:@"31"] || [cityCode hasPrefix:@"50"]);
         if (!model.ipAttribution) {
             if (isDirectCity) {
@@ -838,8 +838,10 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
             }
         }
         [DYYYUtils applyColorSettingsToLabel:label colorHexString:colorHexString];
+    }
 
-        // 尝试用高德 API 获取区县级信息
+    // 统一尝试用高德 API 获取区县级信息（国内 IP 且 Key 已配置）
+    if ([cityCode length] > 0) {
         DYYYFetchAMapDistrictInfo(cityCode, ^(NSString *amapDistrict) {
           dispatch_async(dispatch_get_main_queue(), ^{
             NSString *currentRequestCode = objc_getAssociatedObject(label, kCurrentIPRequestCityCodeKey);
