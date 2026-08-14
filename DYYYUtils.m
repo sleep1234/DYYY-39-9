@@ -587,6 +587,92 @@ static NSString *DYYYDisplayLocationFromGeoNamesInfo(NSDictionary *locationInfo)
     return nil;
 }
 
+#pragma mark - AMap IP 定位（区县级）
+
+/// 通过高德行政区划 API 查询城市及区县信息
+/// @param cityCode 抖音返回的城市编码（也是高德 adcode）
+/// @param completionHandler 回调，返回形如 "省 市 区" 的字符串
+static void DYYYFetchAMapDistrictInfo(NSString *cityCode, void(^completionHandler)(NSString *result)) {
+    NSString *amapKey = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYAMapKey"];
+    if (!amapKey || amapKey.length == 0) {
+        if (completionHandler) completionHandler(nil);
+        return;
+    }
+
+    NSString *urlString = [NSString stringWithFormat:@"https://restapi.amap.com/v3/config/district?key=%@&subdistrict=3&keywords=%@",
+                           [amapKey stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]],
+                           [cityCode stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
+    NSURL *url = [NSURL URLWithString:urlString];
+
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url
+                                                      completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                                                        if (error || data.length == 0) {
+                                                          if (completionHandler) completionHandler(nil);
+                                                          return;
+                                                        }
+                                                        NSError *jsonError;
+                                                        NSDictionary *jsonResult = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+                                                        if (jsonError || ![jsonResult[@"status"] isEqualToString:@"1"]) {
+                                                          if (completionHandler) completionHandler(nil);
+                                                          return;
+                                                        }
+                                                        NSArray *districts = jsonResult[@"districts"];
+                                                        if (![districts isKindOfClass:[NSArray class]] || districts.count == 0) {
+                                                          if (completionHandler) completionHandler(nil);
+                                                          return;
+                                                        }
+                                                        // 找到 level == "city" 的节点（抖音 cityCode 通常对应市级 adcode）
+                                                        NSDictionary *cityNode = nil;
+                                                        for (NSDictionary *d in districts) {
+                                                          NSString *level = d[@"level"];
+                                                          if ([level isEqualToString:@"city"]) {
+                                                            cityNode = d;
+                                                            break;
+                                                          }
+                                                        }
+                                                        if (!cityNode) {
+                                                          cityNode = districts.firstObject;
+                                                        }
+                                                        // 从 cityNode 向下取 区→街道
+                                                        NSString *districtName = nil;
+                                                        NSString *streetName = nil;
+                                                        NSArray *level1Districts = cityNode[@"districts"];
+                                                        if ([level1Districts isKindOfClass:[NSArray class]] && level1Districts.count > 0) {
+                                                          NSDictionary *firstDistrict = level1Districts.firstObject;
+                                                          districtName = firstDistrict[@"name"];
+                                                          // 第三级：街道/镇
+                                                          NSArray *level2Districts = firstDistrict[@"districts"];
+                                                          if ([level2Districts isKindOfClass:[NSArray class]] && level2Districts.count > 0) {
+                                                            streetName = level2Districts.firstObject[@"name"];
+                                                          }
+                                                        }
+                                                        // 拼接结果
+                                                        NSString *result = nil;
+                                                        NSString *adcode = cityNode[@"adcode"];
+                                                        BOOL isDirectMunicipality = [adcode hasPrefix:@"11"] || [adcode hasPrefix:@"12"] ||
+                                                                                    [adcode hasPrefix:@"31"] || [adcode hasPrefix:@"50"];
+                                                        if (isDirectMunicipality && level1Districts.count > 0) {
+                                                          // 直辖市：区下直接是街道，跳过 districtName
+                                                          NSString *streetNameLocal = nil;
+                                                          NSDictionary *firstStreetObj = level1Districts.firstObject;
+                                                          if ([firstStreetObj[@"level"] isEqualToString:@"street"]) {
+                                                            streetNameLocal = firstStreetObj[@"name"];
+                                                          }
+                                                          NSMutableArray *parts = [NSMutableArray arrayWithObjects:cityNode[@"name"], streetNameLocal, nil];
+                                                          [parts removeObjectIdenticalTo:nil];
+                                                          result = [parts componentsJoinedByString:@" "];
+                                                        } else {
+                                                          NSMutableArray *parts = [NSMutableArray array];
+                                                          if (cityNode[@"name"]) [parts addObject:cityNode[@"name"]];
+                                                          if (districtName) [parts addObject:districtName];
+                                                          if (streetName) [parts addObject:streetName];
+                                                          result = [parts componentsJoinedByString:@" "];
+                                                        }
+                                                        if (completionHandler) completionHandler(result);
+                                                      }];
+    [task resume];
+}
+
 static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLocation, NSString *colorHexString) {
     if (!label) {
         return;
@@ -752,6 +838,23 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
             }
         }
         [DYYYUtils applyColorSettingsToLabel:label colorHexString:colorHexString];
+
+        // 尝试用高德 API 获取区县级信息
+        DYYYFetchAMapDistrictInfo(cityCode, ^(NSString *amapDistrict) {
+          dispatch_async(dispatch_get_main_queue(), ^{
+            NSString *currentRequestCode = objc_getAssociatedObject(label, kCurrentIPRequestCityCodeKey);
+            if (![currentRequestCode isEqualToString:cityCode]) {
+                return;
+            }
+            if (amapDistrict && amapDistrict.length > 0) {
+                NSString *newText = [NSString stringWithFormat:@"%@  IP属地：%@", originalText, amapDistrict];
+                if (![label.text isEqualToString:newText]) {
+                    label.text = newText;
+                    [DYYYUtils applyColorSettingsToLabel:label colorHexString:colorHexString];
+                }
+            }
+          });
+        });
     }
 }
 

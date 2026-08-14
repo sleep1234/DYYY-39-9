@@ -21,4 +21,7 @@
 #define DYYYGeonamesErrorDomain @"com.dyyy.geonames.api.error"
 #define DYYYGeonamesStatusUserInfoKey @"com.dyyy.geonames.api.status"
 
+// 高德 IP 定位 Key（国内区县级）
+#define DYYYAMapKey @"DYYYAMapKey"
+
 #endif

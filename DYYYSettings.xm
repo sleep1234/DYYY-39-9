@@ -1072,6 +1072,14 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
               @"cellType" : @20,
               @"imageName" : @"ic_ip_outlined_12"
           },
+          @{
+              @"identifier" : @"DYYYAMapKey",
+              @"title" : @"国内 IP 定位 Key",
+              @"subTitle" : @"高德 Web 服务 API Key，开启后可解析到区县级",
+              @"detail" : @"",
+              @"cellType" : @20,
+              @"imageName" : @"ic_ip_outlined_12"
+          },
           @{@"identifier" : @"DYYYLabelStyle",
             @"title" : @"文案标签样式",
             @"detail" : @"",
