@@ -11,6 +11,9 @@ is_direct_build_path() {
         DYYY.plist|control|Resources/*|layout/*)
             return 0
             ;;
+        DYYY-final/*)
+            return 0
+            ;;
     esac
 
     if [[ "$path" != */* ]]; then
