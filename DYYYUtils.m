@@ -592,17 +592,19 @@ static NSString *DYYYDisplayLocationFromGeoNamesInfo(NSDictionary *locationInfo)
 /// 通过高德行政区划 API 查询城市及区县信息
 /// @param cityCode 抖音返回的城市编码（也是高德 adcode）
 /// @param completionHandler 回调，返回形如 "省 市 区" 的字符串
-static void DYYYFetchAMapDistrictInfo(NSString *cityCode, void(^completionHandler)(NSString *result)) {
+static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, void(^completionHandler)(NSString *result)) {
     NSString *amapKey = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYAMapKey"];
-    NSLog(@"[DYYY] AMap: key=%@ cityCode=%@", amapKey ?: @"(null)", cityCode);
+    NSLog(@"[DYYY] AMap: key=%@ cityCode=%@ cityName=%@", amapKey ?: @"(null)", cityCode, cityName);
     if (!amapKey || amapKey.length == 0) {
         if (completionHandler) completionHandler(nil);
         return;
     }
 
+    // 尝试用城市名称查询（抖音 cityCode 可能不是高德 adcode）
+    NSString *queryKey = cityName.length > 0 ? cityName : cityCode;
     NSString *urlString = [NSString stringWithFormat:@"https://restapi.amap.com/v3/config/district?key=%@&subdistrict=3&keywords=%@",
                            [amapKey stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]],
-                           [cityCode stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
+                           [queryKey stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
     NSURL *url = [NSURL URLWithString:urlString];
 
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url
@@ -625,7 +627,8 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, void(^completionHandle
                                                           if (completionHandler) completionHandler(nil);
                                                           return;
                                                         }
-                                                        // 找到 level == "city" 的节点（抖音 cityCode 通常对应市级 adcode）
+
+                                                        // 找到 level == "city" 的节点
                                                         NSDictionary *cityNode = nil;
                                                         for (NSDictionary *d in districts) {
                                                           NSString *level = d[@"level"];
@@ -637,6 +640,7 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, void(^completionHandle
                                                         if (!cityNode) {
                                                           cityNode = districts.firstObject;
                                                         }
+
                                                         // 从 cityNode 向下取 区→街道
                                                         NSString *districtName = nil;
                                                         NSString *streetName = nil;
@@ -655,7 +659,7 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, void(^completionHandle
                                                             NSLog(@"[DYYY] AMap: no street data");
                                                           }
                                                         }
-                                                        // 拼接结果（直辖市和普通城市统一处理：省/市 + 区 + 街道）
+                                                        // 拼接结果
                                                         NSMutableArray *parts = [NSMutableArray array];
                                                         if (cityNode[@"name"]) [parts addObject:cityNode[@"name"]];
                                                         if (districtName) [parts addObject:districtName];
