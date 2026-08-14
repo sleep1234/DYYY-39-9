@@ -165,15 +165,8 @@ jobs:
 
           printf 'Package artifact: %s\n' "${deb_files[@]}"
 
-      - name: Extract arm64e dylib
-        env:
-          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
-        run: .github/scripts/extract-release-dylib.sh
-
       - name: Upload package artifacts
         uses: actions/upload-artifact@v7
         with:
           name: DYYY-${{ steps.package.outputs.timestamp }}
-          path: |
-            ${{ github.workspace }}/packages/*.deb
-            ${{ github.workspace }}/packages/*.dylib
+          path: ${{ github.workspace }}/packages/*.deb
