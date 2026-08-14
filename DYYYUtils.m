@@ -646,28 +646,12 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, void(^completionHandle
                                                             streetName = level2Districts.firstObject[@"name"];
                                                           }
                                                         }
-                                                        // 拼接结果
-                                                        NSString *result = nil;
-                                                        NSString *adcode = cityNode[@"adcode"];
-                                                        BOOL isDirectMunicipality = [adcode hasPrefix:@"11"] || [adcode hasPrefix:@"12"] ||
-                                                                                    [adcode hasPrefix:@"31"] || [adcode hasPrefix:@"50"];
-                                                        if (isDirectMunicipality && level1Districts.count > 0) {
-                                                          // 直辖市：区下直接是街道，跳过 districtName
-                                                          NSString *streetNameLocal = nil;
-                                                          NSDictionary *firstStreetObj = level1Districts.firstObject;
-                                                          if ([firstStreetObj[@"level"] isEqualToString:@"street"]) {
-                                                            streetNameLocal = firstStreetObj[@"name"];
-                                                          }
-                                                          NSMutableArray *parts = [NSMutableArray arrayWithObjects:cityNode[@"name"], streetNameLocal, nil];
-                                                          [parts removeObjectIdenticalTo:nil];
-                                                          result = [parts componentsJoinedByString:@" "];
-                                                        } else {
-                                                          NSMutableArray *parts = [NSMutableArray array];
-                                                          if (cityNode[@"name"]) [parts addObject:cityNode[@"name"]];
-                                                          if (districtName) [parts addObject:districtName];
-                                                          if (streetName) [parts addObject:streetName];
-                                                          result = [parts componentsJoinedByString:@" "];
-                                                        }
+                                                        // 拼接结果（直辖市和普通城市统一处理：省/市 + 区 + 街道）
+                                                        NSMutableArray *parts = [NSMutableArray array];
+                                                        if (cityNode[@"name"]) [parts addObject:cityNode[@"name"]];
+                                                        if (districtName) [parts addObject:districtName];
+                                                        if (streetName) [parts addObject:streetName];
+                                                        NSString *result = [parts componentsJoinedByString:@" "];
                                                         if (completionHandler) completionHandler(result);
                                                       }];
     [task resume];
