@@ -35,6 +35,12 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (void)processAndApplyIPLocationToLabel:(UILabel *)label forModel:(AWEAwemeModel *)model withLabelColor:(NSString *)colorHexString;
 
+/**
+ * @brief 导出运行日志到文档目录。
+ * @return 导出的文件路径，失败返回nil。
+ */
++ (nullable NSString *)exportLogsToDocuments;
+
 #pragma mark - Public UI/Window/Controller Utilities (公共 UI/窗口/控制器 工具)
 
 /**
