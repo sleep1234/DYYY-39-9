@@ -1085,7 +1085,7 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
               @"title" : @"导出日志",
               @"subTitle" : @"一键导出运行日志到文档目录",
               @"detail" : @"",
-              @"cellType" : @37,
+              @"cellType" : @26,
               @"imageName" : @"ic_share_outlined_20"
           },
           @{@"identifier" : @"DYYYLabelStyle",
