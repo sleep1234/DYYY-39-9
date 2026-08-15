@@ -735,7 +735,6 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
     if (cityCode.length == 0) {
         DYYYNSLog(@"[DYYY] IP属地: cityCode为空，跳过");
         return;
-        DYYYNSLog(@"[DYYY] TESTASCII log message");
     }
 
     DYYYNSLog(@"[DYYY] IP属地: cityCode=%@ cityName=%@", cityCode, [CityManager.sharedInstance getCityNameWithCode:cityCode]);
