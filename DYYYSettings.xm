@@ -1080,23 +1080,14 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
               @"cellType" : @20,
               @"imageName" : @"ic_ip_outlined_12"
           },
-          [DYYYSettingsHelper createButtonItemWithDisplayString:@"导出日志"
-                                               actionHandler:^{
-            NSString *logPath = [DYYYUtils exportLogsToDocuments];
-            if (logPath) {
-              UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"日志已导出"
-                                                                             message:[NSString stringWithFormat:@"文件路径：\n%@", logPath]
-                                                                      preferredStyle:UIAlertControllerStyleAlert];
-              [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-              [[DYYYUtils topView] presentViewController:alert animated:YES completion:nil];
-            } else {
-              UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"导出失败"
-                                                                             message:@"没有找到日志文件"
-                                                                      preferredStyle:UIAlertControllerStyleAlert];
-              [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-              [[DYYYUtils topView] presentViewController:alert animated:YES completion:nil];
-            }
-          }],
+          @{
+              @"identifier" : @"DYYYExportLogs",
+              @"title" : @"导出日志",
+              @"subTitle" : @"一键导出运行日志到文档目录",
+              @"detail" : @"",
+              @"cellType" : @37,
+              @"imageName" : @"ic_share_outlined_20"
+          },
           @{@"identifier" : @"DYYYLabelStyle",
             @"title" : @"文案标签样式",
             @"detail" : @"",
