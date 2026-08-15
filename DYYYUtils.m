@@ -401,7 +401,9 @@ static const void *kCurrentIPRequestCityCodeKey = &kCurrentIPRequestCityCodeKey;
                               withIntermediateDirectories:YES
                                                attributes:nil
                                                     error:nil];
-    NSString *timestamp = [[NSDate date] dateFormat:@"yyyyMMdd_HHmmss"];
+    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+    formatter.dateFormat = @"yyyyMMdd_HHmmss";
+    NSString *timestamp = [formatter stringFromDate:[NSDate date]];
     NSString *exportPath = [exportDir stringByAppendingPathComponent:[NSString stringWithFormat:@"log_%@.txt", timestamp]];
     NSData *logData = [NSData dataWithContentsOfFile:logPath];
     if (!logData || ![logData writeToFile:exportPath atomically:YES]) {

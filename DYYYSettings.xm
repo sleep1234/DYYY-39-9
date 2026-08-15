@@ -1185,18 +1185,27 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
           else if ([item.identifier isEqualToString:@"DYYYExportLogs"]) {
               item.cellTappedBlock = ^{
                 NSString *logPath = [DYYYUtils exportLogsToDocuments];
+                UIViewController *topVC = [DYYYUtils topView];
                 if (logPath) {
                   UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"日志已导出"
                                                                                  message:[NSString stringWithFormat:@"文件路径：\n%@", logPath]
                                                                           preferredStyle:UIAlertControllerStyleAlert];
                   [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-                  [[DYYYUtils topView] presentViewController:alert animated:YES completion:nil];
+                  if (topVC) {
+                    [topVC presentViewController:alert animated:YES completion:nil];
+                  } else {
+                    [DYYYUtils showToast:@"无法获取当前视图控制器"];
+                  }
                 } else {
                   UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"导出失败"
                                                                                  message:@"没有找到日志文件，请先使用插件观看视频"
                                                                           preferredStyle:UIAlertControllerStyleAlert];
                   [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:nil]];
-                  [[DYYYUtils topView] presentViewController:alert animated:YES completion:nil];
+                  if (topVC) {
+                    [topVC presentViewController:alert animated:YES completion:nil];
+                  } else {
+                    [DYYYUtils showToast:@"无法获取当前视图控制器"];
+                  }
                 }
               };
           }
