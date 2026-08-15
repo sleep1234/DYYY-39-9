@@ -617,7 +617,7 @@ static NSString *DYYYDisplayLocationFromGeoNamesInfo(NSDictionary *locationInfo)
 /// @param completionHandler 回调，返回形如 "省 市 区" 的字符串
 static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, void(^completionHandler)(NSString *result)) {
     NSString *amapKey = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYAMapKey"];
-    NSLog(@"[DYYY] AMap: key=%@ cityCode=%@ cityName=%@", amapKey ?: @"(null)", cityCode, cityName);
+    DYYYNSLog(@"[DYYY] AMap: key=%@ cityCode=%@ cityName=%@", amapKey ?: @"(null)", cityCode, cityName);
     if (!amapKey || amapKey.length == 0) {
         if (completionHandler) completionHandler(nil);
         return;
@@ -633,19 +633,19 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, vo
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url
                                                       completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
                                                         if (error || data.length == 0) {
-                                                          NSLog(@"[DYYY] AMap: error=%@ data=%ld", error ? error.localizedDescription : @"nil", (long)data.length);
+                                                          DYYYNSLog(@"[DYYY] AMap: error=%@ data=%ld", error ? error.localizedDescription : @"nil", (long)data.length);
                                                           if (completionHandler) completionHandler(nil);
                                                           return;
                                                         }
                                                         NSError *jsonError;
                                                         NSDictionary *jsonResult = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-                                                        NSLog(@"[DYYY] AMap: json=%@ error=%@", jsonResult, jsonError);
+                                                        DYYYNSLog(@"[DYYY] AMap: json=%@ error=%@", jsonResult, jsonError);
                                                         if (jsonError || ![jsonResult[@"status"] isEqualToString:@"1"]) {
                                                           if (completionHandler) completionHandler(nil);
                                                           return;
                                                         }
                                                         NSArray *districts = jsonResult[@"districts"];
-                                                        NSLog(@"[DYYY] AMap: districts count=%lu", (unsigned long)districts.count);
+                                                        DYYYNSLog(@"[DYYY] AMap: districts count=%lu", (unsigned long)districts.count);
                                                         if (![districts isKindOfClass:[NSArray class]] || districts.count == 0) {
                                                           if (completionHandler) completionHandler(nil);
                                                           return;
@@ -668,18 +668,18 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, vo
                                                         NSString *districtName = nil;
                                                         NSString *streetName = nil;
                                                         NSArray *level1Districts = cityNode[@"districts"];
-                                                        NSLog(@"[DYYY] AMap: cityNode=%@ level1Districts count=%lu", cityNode[@"name"], level1Districts ? (unsigned long)level1Districts.count : 0);
+                                                        DYYYNSLog(@"[DYYY] AMap: cityNode=%@ level1Districts count=%lu", cityNode[@"name"], level1Districts ? (unsigned long)level1Districts.count : 0);
                                                         if ([level1Districts isKindOfClass:[NSArray class]] && level1Districts.count > 0) {
                                                           NSDictionary *firstDistrict = level1Districts.firstObject;
                                                           districtName = firstDistrict[@"name"];
-                                                          NSLog(@"[DYYY] AMap: district=%@ level=%@", districtName, firstDistrict[@"level"]);
+                                                          DYYYNSLog(@"[DYYY] AMap: district=%@ level=%@", districtName, firstDistrict[@"level"]);
                                                           // 第三级：街道/镇
                                                           NSArray *level2Districts = firstDistrict[@"districts"];
                                                           if ([level2Districts isKindOfClass:[NSArray class]] && level2Districts.count > 0) {
                                                             streetName = level2Districts.firstObject[@"name"];
-                                                            NSLog(@"[DYYY] AMap: street=%@", streetName);
+                                                            DYYYNSLog(@"[DYYY] AMap: street=%@", streetName);
                                                           } else {
-                                                            NSLog(@"[DYYY] AMap: no street data");
+                                                            DYYYNSLog(@"[DYYY] AMap: no street data");
                                                           }
                                                         }
                                                         // 拼接结果
@@ -688,7 +688,7 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, vo
                                                         if (districtName) [parts addObject:districtName];
                                                         if (streetName) [parts addObject:streetName];
                                                         NSString *result = [parts componentsJoinedByString:@" "];
-                                                        NSLog(@"[DYYY] AMap: result=%@ parts=%@", result, parts);
+                                                        DYYYNSLog(@"[DYYY] AMap: result=%@ parts=%@", result, parts);
                                                         if (completionHandler) completionHandler(result);
                                                       }];
     [task resume];
@@ -733,9 +733,11 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
     NSString *cityCode = model.cityCode;
 
     if (cityCode.length == 0) {
+        DYYYNSLog(@"[DYYY] IP属地: cityCode为空，跳过");
         return;
     }
 
+    DYYYNSLog(@"[DYYY] IP属地: cityCode=%@ cityName=%@", cityCode, [CityManager.sharedInstance getCityNameWithCode:cityCode]);
     objc_setAssociatedObject(label, kCurrentIPRequestCityCodeKey, cityCode, OBJC_ASSOCIATION_COPY_NONATOMIC);
 
     NSString *cityName = [CityManager.sharedInstance getCityNameWithCode:cityCode];
