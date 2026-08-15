@@ -390,6 +390,26 @@ static BOOL DYYYUtilsWriteStaticImageToGIF(UIImage *image, NSURL *gifURL) {
 
 static const void *kCurrentIPRequestCityCodeKey = &kCurrentIPRequestCityCodeKey;
 
++ (nullable NSString *)exportLogsToDocuments {
+    NSString *logPath = DYYYRuntimeLogFilePath();
+    if (![[NSFileManager defaultManager] fileExistsAtPath:logPath]) {
+        return nil;
+    }
+    NSString *exportDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    exportDir = [exportDir stringByAppendingPathComponent:@"DYYYLogs"];
+    [[NSFileManager defaultManager] createDirectoryAtPath:exportDir
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:nil];
+    NSString *timestamp = [[NSDate date] dateFormat:@"yyyyMMdd_HHmmss"];
+    NSString *exportPath = [exportDir stringByAppendingPathComponent:[NSString stringWithFormat:@"log_%@.txt", timestamp]];
+    NSData *logData = [NSData dataWithContentsOfFile:logPath];
+    if (!logData || ![logData writeToFile:exportPath atomically:YES]) {
+        return nil;
+    }
+    return exportPath;
+}
+
 #pragma mark - Public Model Filtering Utilities (公共模型过滤工具)
 
 + (id)dyyy_safeValueForKey:(NSString *)key fromObject:(id)object {
