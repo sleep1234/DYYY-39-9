@@ -47,27 +47,6 @@ static NSString *DYYYRuntimeLogFilePath(void) {
     return logPath;
 }
 
-+ (NSString *)exportLogsToDocuments {
-    NSString *logPath = DYYYRuntimeLogFilePath();
-    if (![[NSFileManager defaultManager] fileExistsAtPath:logPath]) {
-        return nil;
-    }
-    NSString *exportDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    exportDir = [exportDir stringByAppendingPathComponent:@"DYYYLogs"];
-    [[NSFileManager defaultManager] createDirectoryAtPath:exportDir
-                              withIntermediateDirectories:YES
-                                               attributes:nil
-                                                    error:nil];
-    NSString *timestamp = [[NSDate date] dateFormat:@"yyyyMMdd_HHmmss"];
-    NSString *exportPath = [exportDir stringByAppendingPathComponent:[NSString stringWithFormat:@"log_%@.txt", timestamp]];
-    NSError *error = nil;
-    NSData *logData = [NSData dataWithContentsOfFile:logPath];
-    if (!logData || ![logData writeToFile:exportPath atomically:YES]) {
-        return nil;
-    }
-    return exportPath;
-}
-
 void DYYYNSLog(NSString *format, ...) {
     if (format.length == 0) {
         return;
