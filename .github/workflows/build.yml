@@ -64,7 +64,7 @@ jobs:
 
   build:
     needs: changes
-    if: needs.changes.outputs.should_build == 'true'
+    if: always()
     runs-on: macos-latest
 
     steps:
