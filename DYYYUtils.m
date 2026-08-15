@@ -733,11 +733,11 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
     NSString *cityCode = model.cityCode;
 
     if (cityCode.length == 0) {
-        DYYYNSLog(@"[DYYY] IP属地: cityCode为空，跳过");
+        DYYYNSLog(@"[DYYY] IP\x{u}属地: cityCode为空，跳过");
         return;
     }
 
-    DYYYNSLog(@"[DYYY] IP属地: cityCode=%@ cityName=%@", cityCode, [CityManager.sharedInstance getCityNameWithCode:cityCode]);
+    DYYYNSLog(@"[DYYY] IP\x{u}属地: cityCode=%@ cityName=%@", cityCode, [CityManager.sharedInstance getCityNameWithCode:cityCode]);
     objc_setAssociatedObject(label, kCurrentIPRequestCityCodeKey, cityCode, OBJC_ASSOCIATION_COPY_NONATOMIC);
 
     NSString *cityName = [CityManager.sharedInstance getCityNameWithCode:cityCode];
