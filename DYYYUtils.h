@@ -41,6 +41,12 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (nullable NSString *)exportLogsToDocuments;
 
+/**
+ * @brief 通过系统分享视图控制器导出日志。
+ * @param topVC 顶层视图控制器。
+ */
++ (void)shareLogsToViewController:(nullable UIViewController *)topVC;
+
 #pragma mark - Public UI/Window/Controller Utilities (公共 UI/窗口/控制器 工具)
 
 /**

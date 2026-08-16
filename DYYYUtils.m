@@ -412,6 +412,62 @@ static const void *kCurrentIPRequestCityCodeKey = &kCurrentIPRequestCityCodeKey;
     return exportPath;
 }
 
++ (void)shareLogsToViewController:(nullable UIViewController *)topVC {
+    NSString *logPath = DYYYRuntimeLogFilePath();
+    if (![[NSFileManager defaultManager] fileExistsAtPath:logPath]) {
+        [DYYYUtils showToast:@"没有找到日志文件，请先使用插件观看视频"];
+        return;
+    }
+
+    NSString *exportDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    exportDir = [exportDir stringByAppendingPathComponent:@"DYYYLogs"];
+    [[NSFileManager defaultManager] createDirectoryAtPath:exportDir
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:nil];
+    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+    formatter.dateFormat = @"yyyyMMdd_HHmmss";
+    NSString *timestamp = [formatter stringFromDate:[NSDate date]];
+    NSString *exportPath = [exportDir stringByAppendingPathComponent:[NSString stringWithFormat:@"log_%@.txt", timestamp]];
+
+    NSError *error = nil;
+    NSData *logData = [NSData dataWithContentsOfFile:logPath options:NSDataReadingMappedIfSafe error:&error];
+    if (!logData) {
+        [DYYYUtils showToast:[NSString stringWithFormat:@"读取日志失败: %@", error.localizedDescription]];
+        return;
+    }
+
+    if (![logData writeToFile:exportPath atomically:YES]) {
+        [DYYYUtils showToast:@"导出日志失败"];
+        return;
+    }
+
+    NSURL *fileURL = [NSURL fileURLWithPath:exportPath];
+    NSArray *items = @[fileURL];
+
+    UIActivityViewController *activityVC = [[UIActivityViewController alloc]
+                                            initWithActivityItems:items
+                                            applicationActivities:nil];
+
+    // 设置完成回调
+    activityVC.completionWithItemsHandler = ^(UIActivityType _Nullable activityType, BOOL completed, NSArray * _Nullable returnedItems, NSError * _Nullable activityError) {
+        if (completed) {
+            NSLog(@"[DYYY] 日志分享完成");
+        } else if (activityError) {
+            NSLog(@"[DYYY] 日志分享失败: %@", activityError.localizedDescription);
+        }
+    };
+
+    // iPad 需要设置 popover 来源
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        activityVC.popoverPresentationController.sourceView = topVC.view;
+        activityVC.popoverPresentationController.sourceRect = CGRectCenterRect(topVC.view.bounds);
+        activityVC.popoverPresentationController.permittedArrowDirections = UIPopoverArrowDirectionAny;
+    }
+
+    [topVC presentViewController:activityVC animated:YES completion:nil];
+}
+
 #pragma mark - Public Model Filtering Utilities (公共模型过滤工具)
 
 + (id)dyyy_safeValueForKey:(NSString *)key fromObject:(id)object {
@@ -614,18 +670,27 @@ static NSString *DYYYDisplayLocationFromGeoNamesInfo(NSDictionary *locationInfo)
 
 /// 通过高德行政区划 API 查询城市及区县信息
 /// @param cityCode 抖音返回的城市编码（也是高德 adcode）
-/// @param completionHandler 回调，返回形如 "省 市 区" 的字符串
+/// @param cityName 城市名称（用于备用查询）
+/// @param completionHandler 回调，返回形如 "市 区 街道" 的字符串
 static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, void(^completionHandler)(NSString *result)) {
     NSString *amapKey = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYAMapKey"];
     DYYYNSLog(@"[DYYY] AMap: key=%@ cityCode=%@ cityName=%@", amapKey ?: @"(null)", cityCode, cityName);
     if (!amapKey || amapKey.length == 0) {
+        DYYYNSLog(@"[DYYY] AMap: 未配置高德 Key，跳过区县级查询");
         if (completionHandler) completionHandler(nil);
         return;
     }
 
-    // 尝试用城市名称查询（抖音 cityCode 可能不是高德 adcode）
-    NSString *queryKey = cityName.length > 0 ? cityName : cityCode;
-    NSString *urlString = [NSString stringWithFormat:@"https://restapi.amap.com/v3/config/district?key=%@&subdistrict=3&keywords=%@",
+    // 优先用 adcode 查询（更准确），备用城市名称
+    NSString *queryKey = cityCode.length > 0 ? cityCode : (cityName.length > 0 ? cityName : nil);
+    if (!queryKey) {
+        DYYYNSLog(@"[DYYY] AMap: 无可用查询关键词");
+        if (completionHandler) completionHandler(nil);
+        return;
+    }
+
+    // 使用 config/district 接口查询行政区划
+    NSString *urlString = [NSString stringWithFormat:@"https://restapi.amap.com/v3/config/district?key=%@&keywords=%@&subdistrict=3",
                            [amapKey stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]],
                            [queryKey stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
     NSURL *url = [NSURL URLWithString:urlString];
@@ -641,52 +706,90 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, vo
                                                         NSDictionary *jsonResult = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
                                                         DYYYNSLog(@"[DYYY] AMap: json=%@ error=%@", jsonResult, jsonError);
                                                         if (jsonError || ![jsonResult[@"status"] isEqualToString:@"1"]) {
+                                                          DYYYNSLog(@"[DYYY] AMap: API 返回失败 status=%@ infocode=%@", jsonResult[@"status"], jsonResult[@"infocode"]);
                                                           if (completionHandler) completionHandler(nil);
                                                           return;
                                                         }
                                                         NSArray *districts = jsonResult[@"districts"];
                                                         DYYYNSLog(@"[DYYY] AMap: districts count=%lu", (unsigned long)districts.count);
                                                         if (![districts isKindOfClass:[NSArray class]] || districts.count == 0) {
+                                                          DYYYNSLog(@"[DYYY] AMap: 无行政区数据");
                                                           if (completionHandler) completionHandler(nil);
                                                           return;
                                                         }
 
-                                                        // 找到 level == "city" 的节点
-                                                        NSDictionary *cityNode = nil;
-                                                        for (NSDictionary *d in districts) {
-                                                          NSString *level = d[@"level"];
-                                                          if ([level isEqualToString:@"city"]) {
-                                                            cityNode = d;
-                                                            break;
-                                                          }
-                                                        }
-                                                        if (!cityNode) {
-                                                          cityNode = districts.firstObject;
-                                                        }
+                                                        // 取第一个结果
+                                                        NSDictionary *rootNode = districts.firstObject;
+                                                        NSString *rootLevel = rootNode[@"level"];
+                                                        NSString *rootName = rootNode[@"name"];
+                                                        DYYYNSLog(@"[DYYY] AMap: root=%@ level=%@ adcode=%@", rootName, rootLevel, rootNode[@"adcode"]);
 
-                                                        // 从 cityNode 向下取 区→街道
+                                                        NSString *displayCity = nil;
                                                         NSString *districtName = nil;
                                                         NSString *streetName = nil;
-                                                        NSArray *level1Districts = cityNode[@"districts"];
-                                                        DYYYNSLog(@"[DYYY] AMap: cityNode=%@ level1Districts count=%lu", cityNode[@"name"], level1Districts ? (unsigned long)level1Districts.count : 0);
-                                                        if ([level1Districts isKindOfClass:[NSArray class]] && level1Districts.count > 0) {
-                                                          NSDictionary *firstDistrict = level1Districts.firstObject;
-                                                          districtName = firstDistrict[@"name"];
-                                                          DYYYNSLog(@"[DYYY] AMap: district=%@ level=%@", districtName, firstDistrict[@"level"]);
-                                                          // 第三级：街道/镇
-                                                          NSArray *level2Districts = firstDistrict[@"districts"];
-                                                          if ([level2Districts isKindOfClass:[NSArray class]] && level2Districts.count > 0) {
-                                                            streetName = level2Districts.firstObject[@"name"];
-                                                            DYYYNSLog(@"[DYYY] AMap: street=%@", streetName);
-                                                          } else {
-                                                            DYYYNSLog(@"[DYYY] AMap: no street data");
-                                                          }
+
+                                                        if ([rootLevel isEqualToString:@"city"]) {
+                                                            // 城市级别：rootName 是市名
+                                                            displayCity = rootName;
+                                                            // 找第一个 district 子节点
+                                                            NSArray *subDistricts = rootNode[@"districts"];
+                                                            if ([subDistricts isKindOfClass:[NSArray class]] && subDistricts.count > 0) {
+                                                                for (NSDictionary *sub in subDistricts) {
+                                                                    if ([sub[@"level"] isEqualToString:@"district"]) {
+                                                                        districtName = sub[@"name"];
+                                                                        // 找街道
+                                                                        NSArray *streets = sub[@"districts"];
+                                                                        if ([streets isKindOfClass:[NSArray class]] && streets.count > 0) {
+                                                                            streetName = streets.firstObject[@"name"];
+                                                                        }
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                        } else if ([rootLevel isEqualToString:@"district"]) {
+                                                            // 区县级别（如 110101 东城区）
+                                                            // 不显示城市名，直接显示区名+街道名
+                                                            districtName = rootName;
+                                                            // 找街道
+                                                            NSArray *streets = rootNode[@"districts"];
+                                                            if ([streets isKindOfClass:[NSArray class]] && streets.count > 0) {
+                                                                streetName = streets.firstObject[@"name"];
+                                                            }
+                                                        } else if ([rootLevel isEqualToString:@"province"]) {
+                                                            // 省级（如查询"北京"返回北京市）
+                                                            // 找城市节点
+                                                            NSArray *cityDistricts = rootNode[@"districts"];
+                                                            if ([cityDistricts isKindOfClass:[NSArray class]] && cityDistricts.count > 0) {
+                                                                for (NSDictionary *cityNode in cityDistricts) {
+                                                                    if ([cityNode[@"level"] isEqualToString:@"city"]) {
+                                                                        displayCity = cityNode[@"name"];
+                                                                        // 找区县
+                                                                        NSArray *districts = cityNode[@"districts"];
+                                                                        if ([districts isKindOfClass:[NSArray class]] && districts.count > 0) {
+                                                                            districtName = districts.firstObject[@"name"];
+                                                                            // 找街道
+                                                                            NSArray *streets = districts.firstObject[@"districts"];
+                                                                            if ([streets isKindOfClass:[NSArray class]] && streets.count > 0) {
+                                                                                streetName = streets.firstObject[@"name"];
+                                                                            }
+                                                                        }
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
                                                         }
+
                                                         // 拼接结果
                                                         NSMutableArray *parts = [NSMutableArray array];
-                                                        if (cityNode[@"name"]) [parts addObject:cityNode[@"name"]];
+                                                        if (displayCity) [parts addObject:displayCity];
                                                         if (districtName) [parts addObject:districtName];
                                                         if (streetName) [parts addObject:streetName];
+                                                        
+                                                        // 兜底：如果什么都没找到，用根节点名
+                                                        if (parts.count == 0 && rootName.length > 0) {
+                                                            [parts addObject:rootName];
+                                                        }
+                                                        
                                                         NSString *result = [parts componentsJoinedByString:@" "];
                                                         DYYYNSLog(@"[DYYY] AMap: result=%@ parts=%@", result, parts);
                                                         if (completionHandler) completionHandler(result);
