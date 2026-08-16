@@ -827,15 +827,20 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
         resolvedLocation = @"未知";
     }
 
+    // 允许换行显示，避免长省份名称被省略
+    label.numberOfLines = 0;
+    
     NSString *currentLabelText = label.text ?: @"";
     NSString *newText = nil;
     NSRange ipRange = [currentLabelText rangeOfString:@"IP属地："];
     if (ipRange.location != NSNotFound) {
+        // 已包含 IP 属地，直接替换
         NSString *baseText = [currentLabelText substringToIndex:ipRange.location];
         newText = [NSString stringWithFormat:@"%@IP属地：%@", baseText, resolvedLocation];
     } else {
         if (currentLabelText.length > 0) {
-            newText = [NSString stringWithFormat:@"%@  IP属地：%@", currentLabelText, resolvedLocation];
+            // 换行显示 IP 属地
+            newText = [NSString stringWithFormat:@"%@\nIP属地：%@", currentLabelText, resolvedLocation];
         } else {
             newText = [NSString stringWithFormat:@"IP属地：%@", resolvedLocation];
         }
