@@ -725,9 +725,19 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, vo
                                                         NSString *rootName = rootNode[@"name"];
                                                         DYYYNSLog(@"[DYYY] AMap: root=%@ level=%@ adcode=%@", rootName, rootLevel, rootNode[@"adcode"]);
 
+                                                        NSString *provinceName = nil;
                                                         NSString *displayCity = nil;
                                                         NSString *districtName = nil;
                                                         NSString *streetName = nil;
+
+                                                        // 尝试从所有 districts 中找省份节点
+                                                        NSArray *allDistricts = jsonResult[@"districts"];
+                                                        for (NSDictionary *d in allDistricts) {
+                                                            if ([d[@"level"] isEqualToString:@"province"]) {
+                                                                provinceName = d[@"name"];
+                                                                break;
+                                                            }
+                                                        }
 
                                                         if ([rootLevel isEqualToString:@"city"]) {
                                                             // 城市级别：rootName 是市名
@@ -780,8 +790,9 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, vo
                                                             }
                                                         }
 
-                                                        // 拼接结果
+                                                        // 拼接结果（按顺序：省 市 区 街道）
                                                         NSMutableArray *parts = [NSMutableArray array];
+                                                        if (provinceName) [parts addObject:provinceName];
                                                         if (displayCity) [parts addObject:displayCity];
                                                         if (districtName) [parts addObject:districtName];
                                                         if (streetName) [parts addObject:streetName];
