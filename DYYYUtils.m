@@ -742,11 +742,8 @@ static void DYYYFetchAMapDistrictInfo(NSString *cityCode, NSString *cityName, vo
                                                         // 如果没有找到省份节点，用 adcode 前两位推断
                                                         if (!provinceName && [rootNode[@"adcode"] length] >= 2) {
                                                             NSString *provinceAdcode = [rootNode[@"adcode"] substringToIndex:2];
+                                                            // CityManager 需要 6 位码码格式（如 "130000"）
                                                             provinceName = [CityManager.sharedInstance getProvinceNameWithCode:[NSString stringWithFormat:@"%@0000", provinceAdcode]];
-                                                            if (!provinceName) {
-                                                                // 备用：直接用 adcode 前两位查
-                                                                provinceName = [CityManager.sharedInstance getProvinceNameWithCode:[NSString stringWithFormat:@"%@000000", provinceAdcode]];
-                                                            }
                                                         }
 
                                                         if ([rootLevel isEqualToString:@"city"]) {
