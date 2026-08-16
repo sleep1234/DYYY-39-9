@@ -461,7 +461,8 @@ static const void *kCurrentIPRequestCityCodeKey = &kCurrentIPRequestCityCodeKey;
     // iPad 需要设置 popover 来源
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
         activityVC.popoverPresentationController.sourceView = topVC.view;
-        activityVC.popoverPresentationController.sourceRect = CGRectCenterRect(topVC.view.bounds);
+        CGRect bounds = topVC.view.bounds;
+        activityVC.popoverPresentationController.sourceRect = CGRectMake(bounds.origin.x + bounds.size.width / 2.0, bounds.origin.y + bounds.size.height / 2.0, 1, 1);
         activityVC.popoverPresentationController.permittedArrowDirections = UIPopoverArrowDirectionAny;
     }
 
