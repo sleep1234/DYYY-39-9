@@ -975,12 +975,9 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
             if (![currentRequestCode isEqualToString:cityCode]) {
                 return;
             }
+            // 使用统一函数处理，避免重复添加 IP 属地
             if (amapDistrict && amapDistrict.length > 0) {
-                NSString *newText = [NSString stringWithFormat:@"%@  IP属地：%@", originalText, amapDistrict];
-                if (![label.text isEqualToString:newText]) {
-                    label.text = newText;
-                    [DYYYUtils applyColorSettingsToLabel:label colorHexString:colorHexString];
-                }
+                DYYYApplyDisplayLocationToLabel(label, amapDistrict, colorHexString);
             }
           });
         });
