@@ -2099,16 +2099,24 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
     if (!colorHexString || colorHexString.length == 0) {
         [attributedText addAttribute:NSForegroundColorAttributeName value:[UIColor whiteColor] range:fullRange];
     } else {
-        CGSize maxTextSize = CGSizeMake(CGFLOAT_MAX, label.bounds.size.height);
-        CGRect textRect =
-            [attributedText boundingRectWithSize:maxTextSize options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading context:nil];
-        CGFloat actualTextWidth = MAX(1.0, ceil(textRect.size.width));
+        // 优化：只有当文本不包含换行符时才进行复杂的布局计算
+        // 避免在多行文本上调用 boundingRectWithSize: 导致性能问题
+        BOOL hasNewline = [attributedText.string containsString:@"\n"];
+        if (!hasNewline && label.bounds.size.height > 0) {
+            CGSize maxTextSize = CGSizeMake(CGFLOAT_MAX, label.bounds.size.height);
+            CGRect textRect =
+                [attributedText boundingRectWithSize:maxTextSize options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading context:nil];
+            CGFloat actualTextWidth = MAX(1.0, ceil(textRect.size.width));
 
-        UIColor *finalTextColor = [self colorFromSchemeHexString:colorHexString targetWidth:actualTextWidth];
+            UIColor *finalTextColor = [self colorFromSchemeHexString:colorHexString targetWidth:actualTextWidth];
 
-        if (finalTextColor) {
-            [attributedText addAttribute:NSForegroundColorAttributeName value:finalTextColor range:fullRange];
+            if (finalTextColor) {
+                [attributedText addAttribute:NSForegroundColorAttributeName value:finalTextColor range:fullRange];
+            } else {
+                [attributedText addAttribute:NSForegroundColorAttributeName value:[UIColor whiteColor] range:fullRange];
+            }
         } else {
+            // 多行文本或 bounds 未就绪时，直接使用默认颜色
             [attributedText addAttribute:NSForegroundColorAttributeName value:[UIColor whiteColor] range:fullRange];
         }
     }
