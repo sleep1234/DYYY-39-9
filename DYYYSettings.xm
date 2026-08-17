@@ -1081,6 +1081,14 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
               @"imageName" : @"ic_ip_outlined_12"
           },
           @{
+              @"identifier" : @"DYYYIPAccuracyNotice",
+              @"title" : @"提示：国内 IP 定位可能不准确",
+              @"subTitle" : @"受 NAT 网关、运营商转发的影响，IP 属地显示可能存在 10-50km 误差，仅作为参考",
+              @"detail" : @"",
+              @"cellType" : @26,
+              @"imageName" : @"ic_info_outlined_16"
+          },
+          @{
               @"identifier" : @"DYYYExportLogs",
               @"title" : @"导出日志",
               @"subTitle" : @"一键导出运行日志到文档目录",
