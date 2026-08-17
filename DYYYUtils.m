@@ -880,8 +880,26 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
         }
     }
 
-    if (cityCode.length == 0) {
-        DYYYNSLog(@"[DYYY] IP属地: cityCode为空，跳过");
+    // cityCode 为 "0" 或空字符串时，直接使用 ipAttribution 显示
+    if (cityCode.length == 0 || [cityCode isEqualToString:@"0"]) {
+        DYYYNSLog(@"[DYYY] IP属地: cityCode=%@ (无效)，使用 ipAttribution 显示", cityCode);
+        if (model.ipAttribution && model.ipAttribution.length > 0) {
+            NSString *rawAttribution = model.ipAttribution;
+            NSString *cleanLocation = [rawAttribution
+                stringByReplacingOccurrencesOfString:@"IP属地：" withString:@""];
+            cleanLocation = [cleanLocation
+                stringByReplacingOccurrencesOfString:@"IP属地:" withString:@""];
+            cleanLocation = [cleanLocation
+                stringByReplacingOccurrencesOfString:@"IP 属地：" withString:@""];
+            cleanLocation = [cleanLocation
+                stringByReplacingOccurrencesOfString:@"IP 属地:" withString:@""];
+            cleanLocation = [cleanLocation
+                stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            
+            if (cleanLocation.length > 0) {
+                DYYYApplyDisplayLocationToLabel(label, cleanLocation, colorHexString);
+            }
+        }
         return;
     }
 
