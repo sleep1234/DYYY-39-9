@@ -858,6 +858,10 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
 + (void)processAndApplyIPLocationToLabel:(UILabel *)label forModel:(AWEAwemeModel *)model withLabelColor:(NSString *)colorHexString {
     NSString *originalText = label.text ?: @"";
     NSString *cityCode = model.cityCode;
+    
+    // 详细诊断日志 - 帮助排查 IP 属地显示问题
+    DYYYNSLog(@"[DYYY] IP属地诊断: label=%@, originalText=%@, cityCode=%@", label, originalText, cityCode);
+    DYYYNSLog(@"[DYYY] IP属地诊断: ipAttribution=%@", model.ipAttribution);
 
     // 优先使用抖音官方提供的 IP 属地（更稳定、更准确）
     // 但不立即返回，继续查询高德 API 获取更精确的区县级信息
@@ -1013,18 +1017,25 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
 
     // 统一尝试用高德 API 获取区县级信息（国内 IP 且 Key 已配置）
     if ([cityCode length] > 0) {
+        DYYYNSLog(@"[DYYY] IP属地: 开始查询高德 API, cityCode=%@, cityName=%@", cityCode, cityName);
         DYYYFetchAMapDistrictInfo(cityCode, cityName, ^(NSString *amapDistrict) {
           dispatch_async(dispatch_get_main_queue(), ^{
             NSString *currentRequestCode = objc_getAssociatedObject(label, kCurrentIPRequestCityCodeKey);
             if (![currentRequestCode isEqualToString:cityCode]) {
+                DYYYNSLog(@"[DYYY] IP属地: 请求已过期，跳过更新");
                 return;
             }
             // 使用统一函数处理，避免重复添加 IP 属地
             if (amapDistrict && amapDistrict.length > 0) {
+                DYYYNSLog(@"[DYYY] IP属地: 高德 API 返回=%@", amapDistrict);
                 DYYYApplyDisplayLocationToLabel(label, amapDistrict, colorHexString);
+            } else {
+                DYYYNSLog(@"[DYYY] IP属地: 高德 API 返回为空，保持原有显示");
             }
           });
         });
+    } else {
+        DYYYNSLog(@"[DYYY] IP属地: cityCode 为空，跳过高德 API 查询");
     }
 }
 
