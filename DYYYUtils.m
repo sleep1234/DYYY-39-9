@@ -859,12 +859,30 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
     NSString *originalText = label.text ?: @"";
     NSString *cityCode = model.cityCode;
 
+    // 优先使用抖音官方提供的 IP 属地（更稳定、更准确）
+    if (model.ipAttribution && model.ipAttribution.length > 0) {
+        NSString *cleanLocation = [model.ipAttribution
+            stringByReplacingOccurrencesOfString:@"IP属地：" withString:@""]
+            .stringByReplacingOccurrencesOfString:@"IP属地:" withString:@""]
+            .stringByReplacingOccurrencesOfString:@"IP 属地：" withString:@""]
+            .stringByReplacingOccurrencesOfString:@"IP 属地:" withString:@""]
+            .stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+        if (cleanLocation.length > 0) {
+            DYYYNSLog(@"[DYYY] IP属地: 使用抖音官方数据=%@", cleanLocation);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                DYYYApplyDisplayLocationToLabel(label, cleanLocation, colorHexString);
+            });
+            return;
+        }
+    }
+
     if (cityCode.length == 0) {
-        DYYYNSLog(@"[DYYY] IP\u5c5e\u5730: cityCode\u4e3a\u7a7a\uff0c\u8df3\u8fc7");
+        DYYYNSLog(@"[DYYY] IP属地: cityCode为空，跳过");
         return;
     }
 
-    DYYYNSLog(@"[DYYY] IP\u5c5e\u5730: cityCode=%@ cityName=%@", cityCode, [CityManager.sharedInstance getCityNameWithCode:cityCode]);
+    DYYYNSLog(@"[DYYY] IP属地: cityCode=%@ cityName=%@", cityCode, [CityManager.sharedInstance getCityNameWithCode:cityCode]);
     objc_setAssociatedObject(label, kCurrentIPRequestCityCodeKey, cityCode, OBJC_ASSOCIATION_COPY_NONATOMIC);
 
     NSString *cityName = [CityManager.sharedInstance getCityNameWithCode:cityCode];
