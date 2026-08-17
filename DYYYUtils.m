@@ -829,26 +829,22 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
 
     // 允许换行显示，避免长省份名称被省略
     label.numberOfLines = 0;
-    
+
     NSString *currentLabelText = label.text ?: @"";
     NSString *newText = nil;
     NSRange ipRange = [currentLabelText rangeOfString:@"IP属地："];
     if (ipRange.location != NSNotFound) {
-        // 已包含 IP 属地，直接替换
+        // 已有 IP 属地，提取前缀部分（时间等）并去除末尾空格
         NSString *baseText = [currentLabelText substringToIndex:ipRange.location];
-        newText = [NSString stringWithFormat:@"%@IP属地：%@", baseText, resolvedLocation];
+        baseText = [baseText stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        newText = [NSString stringWithFormat:@"%@\nIP属地：%@", baseText, resolvedLocation];
     } else {
-        if (currentLabelText.length > 0) {
-            // 换行显示 IP 属地
-            newText = [NSString stringWithFormat:@"%@\nIP属地：%@", currentLabelText, resolvedLocation];
-        } else {
-            newText = [NSString stringWithFormat:@"IP属地：%@", resolvedLocation];
-        }
+        // 没有 IP 属地，直接设置
+        newText = [NSString stringWithFormat:@"IP属地：%@", resolvedLocation];
     }
 
-    if (newText.length > 0 && ![label.text isEqualToString:newText]) {
-        label.text = newText;
-    } else if (label.text.length == 0) {
+    // 只有文本真正改变时才更新
+    if (![newText isEqualToString:label.text]) {
         label.text = newText;
     }
 
