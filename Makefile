@@ -30,7 +30,7 @@ ifeq ($(GITHUB_ACTIONS),true)
 endif
 
 export DEBUG = 0
-INSTALL_TARGET_PROCESSES = Aweme
+INSTALL_TARGET_PROCESSES = Aweme AwemeLite
 
 include $(THEOS)/makefiles/common.mk
 
