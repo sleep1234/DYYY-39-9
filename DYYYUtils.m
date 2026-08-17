@@ -860,6 +860,7 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
     NSString *cityCode = model.cityCode;
 
     // 优先使用抖音官方提供的 IP 属地（更稳定、更准确）
+    // 但不立即返回，继续查询高德 API 获取更精确的区县级信息
     if (model.ipAttribution && model.ipAttribution.length > 0) {
         NSString *rawAttribution = model.ipAttribution;
         NSString *cleanLocation = [rawAttribution
@@ -874,11 +875,8 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
             stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 
         if (cleanLocation.length > 0) {
-            DYYYNSLog(@"[DYYY] IP属地: 使用抖音官方数据=%@", cleanLocation);
-            dispatch_async(dispatch_get_main_queue(), ^{
-                DYYYApplyDisplayLocationToLabel(label, cleanLocation, colorHexString);
-            });
-            return;
+            DYYYNSLog(@"[DYYY] IP属地: 抖音官方数据=%@，继续查询高德 API 获取区县信息", cleanLocation);
+            // 不在这里 return，继续执行高德 API 查询
         }
     }
 
