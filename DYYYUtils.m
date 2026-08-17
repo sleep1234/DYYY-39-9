@@ -861,12 +861,17 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
 
     // 优先使用抖音官方提供的 IP 属地（更稳定、更准确）
     if (model.ipAttribution && model.ipAttribution.length > 0) {
-        NSString *cleanLocation = [model.ipAttribution
-            stringByReplacingOccurrencesOfString:@"IP属地：" withString:@""]
-            .stringByReplacingOccurrencesOfString:@"IP属地:" withString:@""]
-            .stringByReplacingOccurrencesOfString:@"IP 属地：" withString:@""]
-            .stringByReplacingOccurrencesOfString:@"IP 属地:" withString:@""]
-            .stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        NSString *rawAttribution = model.ipAttribution;
+        NSString *cleanLocation = [rawAttribution
+            stringByReplacingOccurrencesOfString:@"IP属地：" withString:@""];
+        cleanLocation = [cleanLocation
+            stringByReplacingOccurrencesOfString:@"IP属地:" withString:@""];
+        cleanLocation = [cleanLocation
+            stringByReplacingOccurrencesOfString:@"IP 属地：" withString:@""];
+        cleanLocation = [cleanLocation
+            stringByReplacingOccurrencesOfString:@"IP 属地:" withString:@""];
+        cleanLocation = [cleanLocation
+            stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 
         if (cleanLocation.length > 0) {
             DYYYNSLog(@"[DYYY] IP属地: 使用抖音官方数据=%@", cleanLocation);
